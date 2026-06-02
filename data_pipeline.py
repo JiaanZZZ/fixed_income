@@ -64,4 +64,6 @@ if __name__ == "__main__":
     plt.title('Yield Curve Curvature (Last 5 Years)')
     plt.grid(True)
     plt.legend()
-    plt.show()
+    plt.savefig('butterfly_spread.png', dpi=150, bbox_inches='tight')
+    plt.close()
+    print("图表已保存至 butterfly_spread.png")

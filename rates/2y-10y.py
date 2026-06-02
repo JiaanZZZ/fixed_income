@@ -6,7 +6,7 @@ import pandas as pd
 # 这里我们直接拉取真实的10年期美债和2Y美债的相关ETF或收益率代号
 print("正在拉取宏观核心数据...")
 tickers = ['^TNX', '^IRX'] # ^TNX是10年期利率，^IRX是13周/短端利率
-data = yf.download(tickers, start="2020-01-01")['Close']
+data = yf.download(tickers, start="2020-01-01", auto_adjust=True)['Close']
 
 # 2. 计算利差 (Spread)
 data['Spread'] = data['^TNX'] - data['^IRX']
