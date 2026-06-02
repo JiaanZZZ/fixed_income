@@ -45,10 +45,29 @@ ax2.fill_between(data.index, data['Spread'], 0,
 ax2.plot(data.index, data['Spread'], color='black', linewidth=1)
 ax2.axhline(0, color='black', linewidth=0.8, linestyle='--')
 ax2.set_ylabel('Spread (10Y - 2Y, %)')
-ax2.legend()
+ax2.legend(loc='lower left')
 ax2.grid(True, alpha=0.3)
 ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
 fig.autofmt_xdate()
+
+# 关键事件标注
+events = [
+    ('2022-03-16', 'Fed 首次\n加息',       '#e67e22', 'bottom'),
+    ('2022-11-30', 'ChatGPT\n问世',         '#8e44ad', 'top'),
+    ('2023-05-24', 'NVDA 财报\n股价起飞',   '#27ae60', 'bottom'),
+]
+
+for date_str, label, color, valign in events:
+    dt = pd.Timestamp(date_str)
+    if dt < data.index[0] or dt > data.index[-1]:
+        continue
+    for ax in (ax1, ax2):
+        ax.axvline(dt, color=color, linewidth=1.2, linestyle='--', alpha=0.85)
+    y_pos = ax1.get_ylim()[1] * 0.95 if valign == 'top' else ax1.get_ylim()[0] + 0.05
+    ax1.annotate(label, xy=(dt, y_pos),
+                 xytext=(6, 0), textcoords='offset points',
+                 fontsize=8, color=color, fontweight='bold',
+                 va='top' if valign == 'top' else 'bottom')
 
 plt.tight_layout()
 plt.savefig('2y_10y_spread.png', dpi=150, bbox_inches='tight')
