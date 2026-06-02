@@ -1,16 +1,56 @@
-# 你的从零开始：第一行宏观破局代码
-import yfinance as yf
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from datetime import datetime, timedelta
 
-# 1. 自动拉取2年期和10年期美债的数据（在门里，我们用^IRX, ^FVX, ^TNX等代表收益率）
-# 这里我们直接拉取真实的10年期美债和2Y美债的相关ETF或收益率代号
-print("正在拉取宏观核心数据...")
-tickers = ['^TNX', '^IRX'] # ^TNX是10年期利率，^IRX是13周/短端利率
-data = yf.download(tickers, start="2020-01-01", auto_adjust=True)['Close']
+print("正在从 FRED 拉取 2Y / 10Y 美债收益率...")
 
-# 2. 计算利差 (Spread)
-data['Spread'] = data['^TNX'] - data['^IRX']
+end_date = datetime.today()
+start_date = end_date - timedelta(days=365 * 5)
 
-# 3. 打印出历史上利差最极端的日子
-print("\n【历史最极端宏观扭曲时刻】")
-print(data.sort_values(by='Spread').head(5)) # 倒挂最严重的几天
+def fetch_fred(series_id: str) -> pd.Series:
+    url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
+    df = pd.read_csv(url)
+    date_col = df.columns[0]
+    df[date_col] = pd.to_datetime(df[date_col])
+    df = df.set_index(date_col)
+    return pd.to_numeric(df[series_id], errors='coerce').rename(series_id)
+
+y2  = fetch_fred('DGS2')
+y10 = fetch_fred('DGS10')
+
+data = pd.concat([y2, y10], axis=1).ffill().dropna()
+data = data[data.index >= pd.Timestamp(start_date)]
+data['Spread'] = data['DGS10'] - data['DGS2']
+
+print(f"\n数据范围: {data.index[0].date()} → {data.index[-1].date()}  ({len(data)} 个交易日)")
+print(f"当前利差 (10Y - 2Y): {data['Spread'].iloc[-1]:+.3f}%")
+print(f"5年利差最低 (最深倒挂): {data['Spread'].min():+.3f}%  ({data['Spread'].idxmin().date()})")
+print(f"5年利差最高:           {data['Spread'].max():+.3f}%  ({data['Spread'].idxmax().date()})")
+
+# 画图
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(13, 8), sharex=True)
+fig.suptitle('US Treasury Yield Curve: 2Y vs 10Y (Past 5 Years)', fontsize=14, fontweight='bold')
+
+ax1.plot(data.index, data['DGS10'], label='10Y', color='#1f77b4', linewidth=1.5)
+ax1.plot(data.index, data['DGS2'],  label='2Y',  color='#ff7f0e', linewidth=1.5)
+ax1.set_ylabel('Yield (%)')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+ax2.fill_between(data.index, data['Spread'], 0,
+                 where=(data['Spread'] >= 0), color='#2ca02c', alpha=0.4, label='Normal (10Y > 2Y)')
+ax2.fill_between(data.index, data['Spread'], 0,
+                 where=(data['Spread'] < 0),  color='#d62728', alpha=0.4, label='Inverted (10Y < 2Y)')
+ax2.plot(data.index, data['Spread'], color='black', linewidth=1)
+ax2.axhline(0, color='black', linewidth=0.8, linestyle='--')
+ax2.set_ylabel('Spread (10Y - 2Y, %)')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+fig.autofmt_xdate()
+
+plt.tight_layout()
+plt.savefig('2y_10y_spread.png', dpi=150, bbox_inches='tight')
+plt.close()
+print("\n图表已保存至 2y_10y_spread.png")
