@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime, timedelta
 
-print("正在从 FRED 拉取 2Y / 10Y 美债收益率...")
+print("Fetching 2Y / 10Y Treasury yields from FRED...")
 
 end_date = datetime.today()
 start_date = end_date - timedelta(days=365 * 5)
@@ -23,10 +23,10 @@ data = pd.concat([y2, y10], axis=1).ffill().dropna()
 data = data[data.index >= pd.Timestamp(start_date)]
 data['Spread'] = data['DGS10'] - data['DGS2']
 
-print(f"\n数据范围: {data.index[0].date()} → {data.index[-1].date()}  ({len(data)} 个交易日)")
-print(f"当前利差 (10Y - 2Y): {data['Spread'].iloc[-1]:+.3f}%")
-print(f"5年利差最低 (最深倒挂): {data['Spread'].min():+.3f}%  ({data['Spread'].idxmin().date()})")
-print(f"5年利差最高:           {data['Spread'].max():+.3f}%  ({data['Spread'].idxmax().date()})")
+print(f"\nDate range : {data.index[0].date()} -> {data.index[-1].date()}  ({len(data)} trading days)")
+print(f"Current spread (10Y - 2Y) : {data['Spread'].iloc[-1]:+.3f}%")
+print(f"5Y min spread (deepest inversion): {data['Spread'].min():+.3f}%  ({data['Spread'].idxmin().date()})")
+print(f"5Y max spread                    : {data['Spread'].max():+.3f}%  ({data['Spread'].idxmax().date()})")
 
 # 画图
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(13, 8), sharex=True)
@@ -50,11 +50,11 @@ ax2.grid(True, alpha=0.3)
 ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
 fig.autofmt_xdate()
 
-# 关键事件标注
+# Key event annotations
 events = [
-    ('2022-03-16', 'Fed 首次\n加息',       '#e67e22', 'bottom'),
-    ('2022-11-30', 'ChatGPT\n问世',         '#8e44ad', 'top'),
-    ('2023-05-24', 'NVDA 财报\n股价起飞',   '#27ae60', 'bottom'),
+    ('2022-03-16', 'Fed first\nrate hike',     '#e67e22', 'bottom'),
+    ('2022-11-30', 'ChatGPT\nlaunched',         '#8e44ad', 'top'),
+    ('2023-05-24', 'NVDA earnings\nAI breakout','#27ae60', 'bottom'),
 ]
 
 for date_str, label, color, valign in events:
@@ -72,4 +72,4 @@ for date_str, label, color, valign in events:
 plt.tight_layout()
 plt.savefig('2y_10y_spread.png', dpi=150, bbox_inches='tight')
 plt.close()
-print("\n图表已保存至 2y_10y_spread.png")
+print("\nChart saved to 2y_10y_spread.png")
