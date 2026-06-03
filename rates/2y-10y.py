@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+import time
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -6,15 +8,22 @@ from datetime import datetime, timedelta
 print("Fetching 2Y / 10Y Treasury yields from FRED...")
 
 end_date = datetime.today()
-start_date = end_date - timedelta(days=365 * 5)
+start_date = end_date - timedelta(days=365 * 6)
 
-def fetch_fred(series_id: str) -> pd.Series:
+def fetch_fred(series_id: str, retries: int = 3) -> pd.Series:
     url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
-    df = pd.read_csv(url)
-    date_col = df.columns[0]
-    df[date_col] = pd.to_datetime(df[date_col])
-    df = df.set_index(date_col)
-    return pd.to_numeric(df[series_id], errors='coerce').rename(series_id)
+    for attempt in range(1, retries + 1):
+        try:
+            df = pd.read_csv(url)
+            date_col = df.columns[0]
+            df[date_col] = pd.to_datetime(df[date_col])
+            df = df.set_index(date_col)
+            return pd.to_numeric(df[series_id], errors='coerce').rename(series_id)
+        except Exception as e:
+            print(f"  [{series_id}] attempt {attempt}/{retries} failed: {e}")
+            if attempt == retries:
+                raise
+            time.sleep(3)
 
 y2  = fetch_fred('DGS2')
 y10 = fetch_fred('DGS10')

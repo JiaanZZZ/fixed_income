@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+import time
 import pandas as pd
 import numpy as np
 import requests
@@ -15,23 +17,27 @@ class YieldCurvePipeline:
             '10Y': 'DGS10'  # 10-Year Treasury Constant Maturity Rate
         }
 
-    def fetch_data(self) -> pd.DataFrame:
-        """从FRED异步/循环获取国债数据并进行外键拼接"""
+    def fetch_data(self, retries: int = 3) -> pd.DataFrame:
+        """Fetch Treasury yield data from FRED and join on date index."""
         dfs = []
         for name, series_id in self.series_ids.items():
             url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
-            df = pd.read_csv(url)
-            # FRED 近期把日期列从 'DATE' 改成了 'observation_date'，这里自动识别第一列作为时间戳
+            for attempt in range(1, retries + 1):
+                try:
+                    df = pd.read_csv(url)
+                    break
+                except Exception as e:
+                    print(f"  [{series_id}] attempt {attempt}/{retries} failed: {e}")
+                    if attempt == retries:
+                        raise
+                    time.sleep(3)
             date_col = df.columns[0]
             df[date_col] = pd.to_datetime(df[date_col])
             df = df.set_index(date_col)
-            # 过滤掉非数字的脏数据（比如市场休市时的 "."）
             df[name] = pd.to_numeric(df[series_id], errors='coerce')
             dfs.append(df[[name]])
-        
-        # 纵向合并，按时间戳对齐
+
         curve_df = pd.concat(dfs, axis=1)
-        # 前向填充市场休市导致的空值，然后剔除无法对齐的残缺行
         curve_df = curve_df.ffill().dropna()
         return curve_df
 
