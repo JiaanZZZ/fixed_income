@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 
 print("Fetching 2Y / 10Y Treasury yields from FRED...")
 
-end_date = datetime.today()
-start_date = end_date - timedelta(days=365 * 6)
+end_date = datetime.today()-timedelta(days=365 * 2)
+start_date = end_date - timedelta(days=365 * 3)
 
 def fetch_fred(series_id: str, retries: int = 3) -> pd.Series:
     url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
